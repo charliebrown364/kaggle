@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression
-import sys
+from sklearn.linear_model import LogisticRegression
 
 # Read in the data
 df = pd.read_csv('/home/runner/kaggle/titanic/dataset.csv')
@@ -83,37 +82,59 @@ arr_test = np.array(df_test)
 y_train = arr_train[:,0]
 y_test = arr_test[:,0]
 
-X_train = arr_train[:,1:]
-X_test = arr_test[:,1:]
+x_train = arr_train[:,1:]
+x_test = arr_test[:,1:]
 
-regressor = LinearRegression()
-regressor.fit(X_train, y_train)
+regressor = LogisticRegression(max_iter=392)
+regressor.fit(x_train, y_train)
 
-def convert_regressor_output_to_survival_value(output):
-    if output < 0.5:
-        return 0
-    else:
-        return 1
+y_test_predictions = regressor.predict(x_train)
+y_train_predictions = regressor.predict(x_test)
 
-y_train_predictions = [convert_regressor_output_to_survival_value(output) for output in regressor.predict(X_train)]
-y_test_predictions = [convert_regressor_output_to_survival_value(output) for output in regressor.predict(X_test)]
-
+y_train_predictions = [round(output) for output in regressor.predict(x_train)]
+y_test_predictions = [round(output) for output in regressor.predict(x_test)]
 
 def get_accuracy(predictions, actual):
-    
-    num_correct = 0
-    num_incorrect = 0
-    
-    for i in range(len(predictions)):
-        if predictions[i] == actual[i]:
-            num_correct += 1
-        else:
-            num_incorrect += 1
-    
-    return num_correct / (num_correct + num_incorrect)
+    correct = ['' for i in range(len(predictions)) if predictions[i] == actual[i]]
+    return len(correct) / len(predictions)
 
 # print
 print("\nfeatures:", features_to_use)
 print("\ntraining accuracy", round(get_accuracy(y_train_predictions, y_train), 4))
 print("testing accuracy", round(get_accuracy(y_test_predictions, y_test), 4))
-print("\ncoefficients:", [round(num, 4) for num in regressor.coef_])
+
+columns_featured = df_train.columns[1:]
+coefficients_featured = regressor.coef_[0]
+constant_dict = {'Constant':regressor.intercept_[0]}
+coefficients = {columns_featured[n]:coefficients_featured[n] for n in range(len(columns_featured))}
+constant_dict.update(coefficients)
+
+print("\ncoefficients:", {key:round(value, 4) for key, value in constant_dict.items()})
+# for key, value in {key:round(value, 4) for key, value in constant_dict.items()}.items():
+#     print(key, value)
+
+"""
+
+'Constant': 1.894,
+'Sex': 2.5874,
+'Pclass': -0.6511,
+'Fare': -0.0001,
+'Age': -0.0398,
+'SibSp': -0.545,
+'SibSp>0': 0.4958,
+'Parch>0': 0.0499,
+'Embarked=C': -0.2078,
+'Embarked=None': 0.0867,
+'Embarked=Q': 0.479,
+'Embarked=S': -0.3519,
+'CabinType=A': -0.0498,
+'CabinType=B': 0.0732,
+'CabinType=C': -0.2125,
+'CabinType=D': 0.7214,
+'CabinType=E': 0.4258,
+'CabinType=F': 0.6531,
+'CabinType=G': -0.7694,
+'CabinType=None': -0.5863,
+'CabinType=T': -0.2496
+
+"""
