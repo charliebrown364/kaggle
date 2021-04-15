@@ -24,7 +24,7 @@ df['Sex'] = df['Sex'].apply(convert_sex_to_int)
 
 age_nan = df['Age'].apply(lambda entry: np.isnan(entry))
 age_not_nan = df['Age'].apply(lambda entry: not np.isnan(entry))
-df['Age'][age_nan] = df['Age'][age_not_nan].mean()
+df.loc[age_nan, ['Age']] = df['Age'][age_not_nan].mean()
 
 # SibSp
 
@@ -71,6 +71,21 @@ features_to_use = ['Sex', 'Pclass', 'Fare', 'Age', 'SibSp', 'SibSp>0', 'Parch>0'
 columns_needed = ['Survived'] + features_to_use
 df = df[columns_needed]
 
+# creating interaction terms
+
+redundant_terms = [['SibSp', 'SibSp>0'], ['Embarked=C', 'Embarked=None', 'Embarked=Q', 'Embarked=S'], ['CabinType=A', 'CabinType=B', 'CabinType=C', 'CabinType=D', 'CabinType=E', 'CabinType=F', 'CabinType=G', 'CabinType=None', 'CabinType=T']]
+
+for term_1 in features_to_use:
+    for term_2 in features_to_use:
+
+        if features_to_use.index(term_1) < features_to_use.index(term_2):
+
+            interaction = term_1 + ' * ' + term_2
+            redundant_list = [(term_1 in elem_list and term_2 in elem_list) for elem_list in redundant_terms]
+
+            if not any(redundant_list):
+                df[interaction] = df[term_1] * df[term_2]
+
 # split into traiding/testing dataframe
 
 df_train = df[:500]
@@ -85,11 +100,8 @@ y_test = arr_test[:,0]
 x_train = arr_train[:,1:]
 x_test = arr_test[:,1:]
 
-regressor = LogisticRegression(max_iter=392)
+regressor = LogisticRegression(max_iter=10000)
 regressor.fit(x_train, y_train)
-
-y_test_predictions = regressor.predict(x_train)
-y_train_predictions = regressor.predict(x_test)
 
 y_train_predictions = [round(output) for output in regressor.predict(x_train)]
 y_test_predictions = [round(output) for output in regressor.predict(x_test)]
@@ -98,43 +110,13 @@ def get_accuracy(predictions, actual):
     correct = ['' for i in range(len(predictions)) if predictions[i] == actual[i]]
     return len(correct) / len(predictions)
 
-# print
-print("\nfeatures:", features_to_use)
-print("\ntraining accuracy", round(get_accuracy(y_train_predictions, y_train), 4))
-print("testing accuracy", round(get_accuracy(y_test_predictions, y_test), 4))
+print("\ntraining accuracy", round(get_accuracy(y_train_predictions, y_train), 4)) # should be 0.848
+print("testing accuracy", round(get_accuracy(y_test_predictions, y_test), 4)) # should be 0.811
 
-columns_featured = df_train.columns[1:]
-coefficients_featured = regressor.coef_[0]
-constant_dict = {'Constant':regressor.intercept_[0]}
-coefficients = {columns_featured[n]:coefficients_featured[n] for n in range(len(columns_featured))}
-constant_dict.update(coefficients)
+# columns_featured = df_train.columns[1:]
+# coefficients_featured = regressor.coef_[0]
+# constant_dict = {'Constant':regressor.intercept_[0]}
+# coefficients = {columns_featured[n]:coefficients_featured[n] for n in range(len(columns_featured))}
+# coefficients = constant_dict.update(coefficients)
 
-print("\ncoefficients:", {key:round(value, 4) for key, value in constant_dict.items()})
-# for key, value in {key:round(value, 4) for key, value in constant_dict.items()}.items():
-#     print(key, value)
-
-"""
-
-'Constant': 1.894,
-'Sex': 2.5874,
-'Pclass': -0.6511,
-'Fare': -0.0001,
-'Age': -0.0398,
-'SibSp': -0.545,
-'SibSp>0': 0.4958,
-'Parch>0': 0.0499,
-'Embarked=C': -0.2078,
-'Embarked=None': 0.0867,
-'Embarked=Q': 0.479,
-'Embarked=S': -0.3519,
-'CabinType=A': -0.0498,
-'CabinType=B': 0.0732,
-'CabinType=C': -0.2125,
-'CabinType=D': 0.7214,
-'CabinType=E': 0.4258,
-'CabinType=F': 0.6531,
-'CabinType=G': -0.7694,
-'CabinType=None': -0.5863,
-'CabinType=T': -0.2496
-
-"""
+# print("\ncoefficients:", {key:round(value, 4) for key, value in coefficients.items()})
