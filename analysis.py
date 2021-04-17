@@ -3,67 +3,39 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 # Read in the data
-df = pd.read_csv('/home/runner/kaggle/titanic/dataset.csv')
+df = pd.read_csv('/home/runner/kaggle/dataset.csv')
 
 # Filter to only the column's we're interested in
 keep_cols = ['Survived', 'Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Cabin', 'Embarked']
 df = df[keep_cols]
 
-# Process The Columns:
+# process the columns
+if True:
 
-# Sex
-def convert_sex_to_int(sex):
-    if sex == 'male':
-        return 0
-    elif sex == 'female':
-        return 1
+    df['Sex'] = df['Sex'].apply(lambda sex: 0 if sex == 'male' else 1) # sex
 
-df['Sex'] = df['Sex'].apply(convert_sex_to_int)
-
-# Age
-
-age_nan = df['Age'].apply(lambda entry: np.isnan(entry))
-age_not_nan = df['Age'].apply(lambda entry: not np.isnan(entry))
-df.loc[age_nan, ['Age']] = df['Age'][age_not_nan].mean()
-
-# SibSp
-
-def indicator_greater_than_zero(x):
-    if x > 0:
-        return 1
-    else:
-        return 0
+    age_nan = df['Age'].apply(lambda entry: np.isnan(entry)) # age
+    age_not_nan = df['Age'].apply(lambda entry: not np.isnan(entry))
+    df.loc[age_nan, ['Age']] = df['Age'][age_not_nan].mean()
   
-df['SibSp>0'] = df['SibSp'].apply(indicator_greater_than_zero) 
-df['Parch>0'] = df['Parch'].apply(indicator_greater_than_zero) 
+    df['SibSp>0'] = df['SibSp'].apply(lambda x: 1 if x > 0 else 0) # sib
+    df['Parch>0'] = df['Parch'].apply(lambda x: 1 if x > 0 else 0) # parch
 
-# CabinType
+    # cabinType
+    df['CabinType'] = df['Cabin'].fillna('None').apply(lambda cabin: cabin[0] if cabin != 'None' else cabin)
+ 
+    for cabin_type in df['CabinType'].unique():
+        dummy_var_name = 'CabinType={}'.format(cabin_type)
+        df[dummy_var_name] = df['CabinType'].apply(lambda entry: int(entry == cabin_type)) 
 
-df['Cabin'] = df['Cabin'].fillna('None')
+    # Embarked
+    df['Embarked'] = df['Embarked'].fillna('None')
 
-def get_cabin_type(cabin):
-    if cabin != 'None':
-        return cabin[0]
-    else:
-        return cabin
+    for embarked in df['Embarked'].unique():
+        dummy_var_name = 'Embarked={}'.format(embarked)
+        df[dummy_var_name] = df['Embarked'].apply(lambda entry: int(entry == embarked))
 
-df['CabinType'] = df['Cabin'].apply(get_cabin_type)
-
-for cabin_type in df['CabinType'].unique():
-    dummy_var_name = 'CabinType={}'.format(cabin_type)
-    dummy_var_val = df['CabinType'].apply(lambda entry: int(entry == cabin_type)) 
-    df[dummy_var_name] = dummy_var_val
-
-# Embarked
-
-df['Embarked'] = df['Embarked'].fillna('None')
-
-for embarked in df['Embarked'].unique():
-    dummy_var_name = 'Embarked={}'.format(embarked)
-    dummy_var_val = df['Embarked'].apply(lambda entry: int(entry == embarked)) 
-    df[dummy_var_name] = dummy_var_val
-
-del df['Embarked']
+    del df['Embarked']
 
 # setting the dataframe with the right features
 
@@ -100,7 +72,8 @@ y_test = arr_test[:,0]
 x_train = arr_train[:,1:]
 x_test = arr_test[:,1:]
 
-regressor = LogisticRegression(max_iter=10000)
+max_iter = 1000
+regressor = LogisticRegression(max_iter=max_iter)
 regressor.fit(x_train, y_train)
 
 y_train_predictions = [round(output) for output in regressor.predict(x_train)]
@@ -110,8 +83,8 @@ def get_accuracy(predictions, actual):
     correct = ['' for i in range(len(predictions)) if predictions[i] == actual[i]]
     return len(correct) / len(predictions)
 
-print("\ntraining accuracy", round(get_accuracy(y_train_predictions, y_train), 4)) # should be 0.848
-print("testing accuracy", round(get_accuracy(y_test_predictions, y_test), 4)) # should be 0.811
+print("\ntraining accuracy", round(get_accuracy(y_train_predictions, y_train), 4))
+print("testing accuracy", round(get_accuracy(y_test_predictions, y_test), 4))
 
 # columns_featured = df_train.columns[1:]
 # coefficients_featured = regressor.coef_[0]
