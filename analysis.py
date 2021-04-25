@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 # Read in the data
-df = pd.read_csv('/home/runner/kaggle/dataset.csv')
+df = pd.read_csv('/home/runner/kaggle/data&libraries/dataset.csv')
 
 # Filter to only the column's we're interested in
 keep_cols = ['Survived', 'Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Cabin', 'Embarked']
@@ -72,16 +72,22 @@ y_test = arr_test[:,0]
 x_train = arr_train[:,1:]
 x_test = arr_test[:,1:]
 
-max_iter = 1000
+max_iter = 100
 regressor = LogisticRegression(max_iter=max_iter)
 regressor.fit(x_train, y_train)
 
-y_train_predictions = [round(output) for output in regressor.predict(x_train)]
-y_test_predictions = [round(output) for output in regressor.predict(x_test)]
+y_train_predictions = [int(output) for output in regressor.predict(x_train)]
+y_test_predictions = [int(output) for output in regressor.predict(x_test)]
 
 def get_accuracy(predictions, actual):
     correct = ['' for i in range(len(predictions)) if predictions[i] == actual[i]]
     return len(correct) / len(predictions)
+
+print("\n", y_train_predictions)
+print("\n", [int(elem) for elem in y_train])
+
+print("\n", y_test_predictions)
+print("\n", [int(elem) for elem in y_test])
 
 print("\ntraining accuracy", round(get_accuracy(y_train_predictions, y_train), 4))
 print("testing accuracy", round(get_accuracy(y_test_predictions, y_test), 4))
